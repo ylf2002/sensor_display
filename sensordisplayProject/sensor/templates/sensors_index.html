@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+<div class="row">
+    <div class="col-md-10">
+        <div id="Sensors"></div>
+    </div>
+</div>
+<div id = "Sensorsdata">
+    <div id="Sensorsdata1"></div>
+    <div id="Sensorsdata2"></div>
+    <div id="Sensorsdata3"></div>
+</div>
+
+<div id="allmap"></div>
+<script type="text/javascript">
+// 百度地图API功能
+    var map = new BMap.Map("allmap");
+    map.centerAndZoom(new BMap.Point(121.81297,39.0848),11);
+    map.enableScrollWheelZoom(true);
+
+    Highcharts.setOptions({ global: {useUTC: false }
+    });
+    Highcharts.chart("Sensors", {
+      chart: {
+        type: 'spline',
+        events: {
+          load: function () {
+            var accx = this.series[0];
+            var accy = this.series[1];
+            var accz = this.series[2];
+            setInterval(function (){
+              $.ajax({
+                  url:'/sensor/get_sensors/',
+                  success: function(data) {
+                      var y = data.s1[data.s1.length-1];
+
+                      map.clearOverlays();
+                      var new_point = new BMap.Point(y.longitude,y.latitude);
+                      var marker = new BMap.Marker(new_point);  // 创建标注
+                      map.addOverlay(marker);              // 将标注添加到地图中
+                      map.panTo(BMap.Point(y.longitude,y.latitude));
+                      document.getElementById("Sensorsdata1").innerHTML = "x轴加速度："+y.ax+" y轴加速度："+y.ay+" z轴加速度："+y.az;
+                      document.getElementById("Sensorsdata2").innerHTML = "x轴陀螺仪："+y.gx+" y轴陀螺仪："+y.gy+" z轴陀螺仪："+y.gz;
+                      document.getElementById("Sensorsdata3").innerHTML = "x轴磁力计："+y.mx+" y轴磁力计："+y.my+" z轴磁力计："+y.mz;
+                      accx.addPoint([y.tt, y.ax]);
+                      accy.addPoint([y.tt, y.ay]);
+                      accz.addPoint([y.tt, y.az]);
+                  },
+              });
+            },1000);
+          },
+        },
+      },
+      title: {text: 'Acceleration'},
+      xAxis: {type: "category"},
+      yAxis: {title: {text: 'm/s²'}},
+      rangeSelector: {
+            allButtonsEnabled: true,
+            selected: 3
+        },
+      navigator:{
+            enabled:true
+        },
+      scrollbar: {
+        enabled: true
+      },
+      plotOptions:{
+          spline: {
+             lineWidth: 4,
+             states: {
+                hover: {
+                   lineWidth: 5
+                }
+             },
+             marker: {
+                enabled: false
+             },
+             pointInterval: 1000, // 1秒11个点
+             pointStart: Date.UTC(2021, 11, 23, 19, 58, 50)
+          }
+         },
+      series: [{
+          name: 'accx',
+          data: {{res|safe}},
+      },{
+          name: 'accy',
+          data: {{res|safe}},
+      },{
+          name: 'accz',
+          data: {{res|safe}},
+      }],
+
+    });
+</script>
+
+{%endblock %}
